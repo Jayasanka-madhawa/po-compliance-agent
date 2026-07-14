@@ -1,0 +1,7 @@
+vendor_name,description,quantity,unit_price,line_total
+Lakpura Logistics (Pvt) Ltd,Freight - March shipment,1,320000.00,320000.00
+Lakpura Logistics (Pvt) Ltd,Fuel surcharge,1,15000.00,15000.00
+,,,,
+subtotal,,,,330000.00
+vat,,,,59400.00
+total,,,,390000.00
