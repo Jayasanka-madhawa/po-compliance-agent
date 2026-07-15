@@ -22,7 +22,8 @@ def test_save_and_get_job(db_session):
     response = ProcessOrderResponse(
         job_id="job-test-db-001",
         status=JobStatus.COMPLETED,
-        decision=DecisionType.PENDING_ROUTING,
+        decision=DecisionType.AUTO_ACCEPT,
+        confidence=0.95,
         extraction=extraction,
         message="Saved for test",
     )
@@ -45,6 +46,8 @@ def test_save_and_get_job(db_session):
     assert restored.job_id == "job-test-db-001"
     assert restored.extraction is not None
     assert restored.extraction.po_number == "PO-4521-LK"
+    assert restored.decision == DecisionType.AUTO_ACCEPT
+    assert restored.confidence == 0.95
 
 
 def test_list_jobs(db_session):

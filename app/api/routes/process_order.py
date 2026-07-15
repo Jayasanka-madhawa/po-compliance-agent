@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.decision import DecisionType, JobStatus
+from app.models.decision import DecisionType, JobStatus, ProcessingResult
 from app.models.process_order_response import ProcessOrderResponse
 from app.services import database_service
 from app.services.processing_pipeline import process_order_file
@@ -14,6 +14,21 @@ from app.services.processing_pipeline import process_order_file
 router = APIRouter(tags=["orders"])
 
 ALLOWED_EXTENSIONS = {".pdf", ".csv", ".png", ".jpg", ".jpeg", ".webp"}
+
+
+def _to_response(result: ProcessingResult) -> ProcessOrderResponse:
+    return ProcessOrderResponse(
+        job_id=result.job_id,
+        status=result.status,
+        decision=result.decision,
+        confidence=result.confidence,
+        extraction=result.extraction,
+        rag_validation=result.rag_validation,
+        reasons=result.reasons,
+        explanation=result.explanation,
+        error=result.error,
+        message=result.message,
+    )
 
 
 @router.post("/process-order", response_model=ProcessOrderResponse)
@@ -37,15 +52,8 @@ async def process_order(
             tmp.write(content)
             tmp_path = Path(tmp.name)
 
-        job_id, extraction = process_order_file(tmp_path)
-
-        response = ProcessOrderResponse(
-            job_id=job_id,
-            status=JobStatus.COMPLETED,
-            decision=DecisionType.PENDING_ROUTING,
-            extraction=extraction,
-            message="Extraction complete. Routing will be added in a later step.",
-        )
+        result = process_order_file(tmp_path)
+        response = _to_response(result)
         database_service.save_job(
             db,
             response,

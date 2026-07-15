@@ -19,7 +19,7 @@ from app.models.purchase_order import PurchaseOrder
 POLICY_MAX_AUTO_APPROVE_DAYS = 30
 AUTO_APPROVE_LIMIT_LKR = 1_000_000.0
 MANAGER_REVIEW_LIMIT_LKR = 5_000_000.0
-MATH_TOLERANCE = 0.02
+MATH_TOLERANCE = 0.01
 
 
 def _normalize(value: str) -> str:

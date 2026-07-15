@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.db.models import JobRecord
-from app.models.decision import DecisionType, JobStatus
+from app.models.decision import DecisionType, JobStatus, RagValidation
 from app.models.process_order_response import ProcessOrderResponse
 from app.models.purchase_order import PurchaseOrder
 
@@ -24,6 +24,13 @@ def save_job(
         extraction_json=(
             response.extraction.model_dump(mode="json") if response.extraction else None
         ),
+        rag_validation_json=(
+            response.rag_validation.model_dump(mode="json")
+            if response.rag_validation
+            else None
+        ),
+        reasons_json=response.reasons or None,
+        confidence=response.confidence,
         error=response.error,
         message=response.message,
     )
@@ -51,11 +58,19 @@ def job_to_response(record: JobRecord) -> ProcessOrderResponse:
     if record.extraction_json:
         extraction = PurchaseOrder.model_validate(record.extraction_json)
 
+    rag_validation = None
+    if record.rag_validation_json:
+        rag_validation = RagValidation.model_validate(record.rag_validation_json)
+
     return ProcessOrderResponse(
         job_id=record.id,
         status=JobStatus(record.status),
         decision=DecisionType(record.decision),
+        confidence=record.confidence,
         extraction=extraction,
+        rag_validation=rag_validation,
+        reasons=record.reasons_json or [],
+        explanation=None,
         error=record.error,
         message=record.message,
     )
