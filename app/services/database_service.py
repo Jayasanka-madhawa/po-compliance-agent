@@ -1,9 +1,12 @@
+from datetime import UTC, datetime
+
 from sqlalchemy.orm import Session
 
 from app.db.models import JobRecord
 from app.models.decision import DecisionType, JobStatus, RagValidation
 from app.models.process_order_response import ProcessOrderResponse
 from app.models.purchase_order import PurchaseOrder
+from app.models.review import ReviewAction
 
 
 def save_job(
@@ -53,6 +56,65 @@ def list_jobs(db: Session, limit: int = 20) -> list[JobRecord]:
     )
 
 
+def list_review_queue(
+    db: Session,
+    *,
+    limit: int = 20,
+    vendor: str | None = None,
+) -> list[JobRecord]:
+    records = (
+        db.query(JobRecord)
+        .filter(JobRecord.decision == DecisionType.HUMAN_REVIEW.value)
+        .order_by(JobRecord.created_at.desc())
+        .limit(limit if vendor is None else limit * 10)
+        .all()
+    )
+
+    if vendor is None:
+        return records
+
+    vendor_lower = vendor.lower()
+    filtered = [
+        record
+        for record in records
+        if record.extraction_json
+        and vendor_lower
+        in record.extraction_json.get("vendor_name", "").lower()
+    ]
+    return filtered[:limit]
+
+
+def apply_review(
+    db: Session,
+    job_id: str,
+    *,
+    action: ReviewAction,
+    reviewer: str,
+    note: str | None = None,
+) -> JobRecord:
+    record = get_job(db, job_id)
+    if record is None:
+        raise LookupError(f"Job not found: {job_id}")
+
+    if record.decision != DecisionType.HUMAN_REVIEW.value:
+        raise ValueError("Job is not pending human review")
+
+    record.reviewer = reviewer
+    record.review_note = note
+    record.reviewed_at = datetime.now(UTC)
+
+    if action == ReviewAction.APPROVE:
+        record.decision = DecisionType.AUTO_ACCEPT.value
+        record.message = f"Manually approved by {reviewer}"
+    else:
+        record.decision = DecisionType.REJECTED.value
+        record.message = f"Rejected by {reviewer}"
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
 def job_to_response(record: JobRecord) -> ProcessOrderResponse:
     extraction = None
     if record.extraction_json:
@@ -71,6 +133,9 @@ def job_to_response(record: JobRecord) -> ProcessOrderResponse:
         rag_validation=rag_validation,
         reasons=record.reasons_json or [],
         explanation=None,
+        reviewer=record.reviewer,
+        review_note=record.review_note,
+        reviewed_at=record.reviewed_at,
         error=record.error,
         message=record.message,
     )

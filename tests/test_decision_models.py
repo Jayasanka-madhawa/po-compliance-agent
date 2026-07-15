@@ -14,6 +14,7 @@ from app.models.purchase_order import LineItem, PurchaseOrder
 def test_decision_type_values():
     assert DecisionType.AUTO_ACCEPT.value == "AUTO_ACCEPT"
     assert DecisionType.HUMAN_REVIEW.value == "HUMAN_REVIEW"
+    assert DecisionType.REJECTED.value == "REJECTED"
     assert DecisionType.PROCESSING_FAILED.value == "PROCESSING_FAILED"
     assert DecisionType.PENDING_ROUTING.value == "PENDING_ROUTING"
 

@@ -8,6 +8,7 @@ from app.models.purchase_order import PurchaseOrder
 class DecisionType(str, Enum):
     AUTO_ACCEPT = "AUTO_ACCEPT"
     HUMAN_REVIEW = "HUMAN_REVIEW"
+    REJECTED = "REJECTED"
     PROCESSING_FAILED = "PROCESSING_FAILED"
     PENDING_ROUTING = "PENDING_ROUTING"
 

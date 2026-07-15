@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 from app.models.decision import DecisionType, JobStatus, RagValidation
@@ -13,5 +15,8 @@ class ProcessOrderResponse(BaseModel):
     rag_validation: RagValidation | None = None
     reasons: list[str] = Field(default_factory=list)
     explanation: str | None = None
+    reviewer: str | None = None
+    review_note: str | None = None
+    reviewed_at: datetime | None = None
     error: str | None = None
     message: str | None = None

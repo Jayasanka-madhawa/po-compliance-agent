@@ -6,6 +6,7 @@ from sqlalchemy import text
 
 from app.api.routes.jobs import router as jobs_router
 from app.api.routes.process_order import router as process_order_router
+from app.api.routes.review_queue import router as review_queue_router
 from app.config import settings
 from app.db.session import engine, init_db
 
@@ -25,6 +26,7 @@ app = FastAPI(
 
 app.include_router(process_order_router)
 app.include_router(jobs_router)
+app.include_router(review_queue_router)
 
 
 @app.get("/health")
