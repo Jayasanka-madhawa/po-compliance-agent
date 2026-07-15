@@ -1,0 +1,292 @@
+{
+  "name": "PO-Compliance-Intake",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -32
+      ],
+      "id": "3fbecc41-0363-4d0c-88fe-3f2f988b620e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/node/.n8n-files/sample_documents/po_partial_lakpura.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -32,
+        -32
+      ],
+      "id": "673ac767-dd8b-474f-9760-194a98fa4e02",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/process-order",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "sender",
+              "value": "vendor@test.com"
+            },
+            {
+              "name": "subject",
+              "value": "Purchase Order Submission"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        176,
+        -32
+      ],
+      "id": "43823a35-aa43-4634-a716-8ed71637569a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "AUTO_ACCEPT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "9049270a-06d2-4b0b-86b5-4d4c04a54de4"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "aa1abcb6-632f-45d6-86dc-c743b0e91810",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "HUMAN_REVIEW",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "7d57354e-f54e-4a21-a8b9-2c78e52484b7",
+                    "leftValue": "={{ $json.decision }}",
+                    "rightValue": "PROCESSING_FAILED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        -48
+      ],
+      "id": "2ad08628-b8fd-42c8-b429-bfc461c27fc0",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f92d927f-541e-4111-8399-bd51d3920c7b",
+              "name": "notification",
+              "value": "=👤 NEEDS REVIEW: {{ $json.extraction.vendor_name }} — {{ $json.reasons.join(' | ') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        -32
+      ],
+      "id": "759ba9e7-8653-40da-87d8-c715578eea1d",
+      "name": "HUMAN_REVIEW"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b00e67fe-5ace-480f-9de7-e157f1aaba85",
+              "name": "notification",
+              "value": "=✅ AUTO-ACCEPTED: {{ $json.extraction.vendor_name }} — LKR {{ $json.extraction.total_amount }} — PO {{ $json.extraction.po_number }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        -224
+      ],
+      "id": "94dbb1b1-a93e-4524-bd76-d894ad0b3f57",
+      "name": "AUTO-ACCEPTED"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a5c40c43-4df8-428d-995c-caa11d8f483a",
+              "name": "notification",
+              "value": "=❌ FAILED: {{ $json.error }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        160
+      ],
+      "id": "fc62238e-50ac-4e97-bfcc-af2f2b166969",
+      "name": "PROCESSING_FAILED"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AUTO-ACCEPTED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HUMAN_REVIEW",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "PROCESSING_FAILED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "f8fd48bf-26a1-40f3-97f2-ec3a0b20bde7",
+  "meta": {
+    "instanceId": "ffd6c07e5b9c71a3f52c6eb55ff3742e39afd87845e50dfc176bd775c7a54b84"
+  },
+  "nodeGroups": [],
+  "id": "sihl4AdYtEqmfCyJ",
+  "tags": []
+}

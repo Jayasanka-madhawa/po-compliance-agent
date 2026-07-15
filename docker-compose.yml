@@ -35,6 +35,24 @@ services:
       qdrant:
         condition: service_started
 
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Asia/Colombo
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+      - ./sample_documents:/home/node/.n8n-files/sample_documents:ro
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
   qdrant_data:
+  n8n_data:
