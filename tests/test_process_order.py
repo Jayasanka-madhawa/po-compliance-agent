@@ -1,13 +1,9 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from fastapi.testclient import TestClient
-
-from app.main import app
 from app.models.decision import DecisionType, JobStatus
 from app.models.purchase_order import LineItem, PurchaseOrder
 
-client = TestClient(app)
 SAMPLES = Path(__file__).resolve().parent.parent / "sample_documents"
 
 MOCK_PO = PurchaseOrder(
@@ -28,7 +24,7 @@ MOCK_PO = PurchaseOrder(
 
 
 @patch("app.api.routes.process_order.process_order_file")
-def test_process_order_returns_extraction(mock_process):
+def test_process_order_returns_extraction(mock_process, client):
     mock_process.return_value = ("job-test-123", MOCK_PO)
 
     with open(SAMPLES / "po_clean_ceylon_industrial.pdf", "rb") as f:
@@ -45,10 +41,19 @@ def test_process_order_returns_extraction(mock_process):
     assert body["extraction"]["po_number"] == "PO-4521-LK"
     assert body["job_id"] == "job-test-123"
 
+    job_response = client.get("/jobs/job-test-123")
+    assert job_response.status_code == 200
+    assert job_response.json()["extraction"]["po_number"] == "PO-4521-LK"
 
-def test_process_order_rejects_unsupported_file():
+
+def test_process_order_rejects_unsupported_file(client):
     response = client.post(
         "/process-order",
         files={"file": ("notes.txt", b"hello", "text/plain")},
     )
     assert response.status_code == 400
+
+
+def test_get_job_not_found(client):
+    response = client.get("/jobs/does-not-exist")
+    assert response.status_code == 404

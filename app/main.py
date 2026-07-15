@@ -1,19 +1,30 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from qdrant_client import QdrantClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 
+from app.api.routes.jobs import router as jobs_router
 from app.api.routes.process_order import router as process_order_router
 from app.config import settings
+from app.db.session import engine, init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
 
 app = FastAPI(
     title="PO Compliance Agent",
     description="Purchase order intake, extraction, and compliance routing",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.include_router(process_order_router)
-
-engine = create_engine(settings.database_url)
+app.include_router(jobs_router)
 
 
 @app.get("/health")
