@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from qdrant_client import QdrantClient
 from sqlalchemy import create_engine, text
 
+from app.api.routes.process_order import router as process_order_router
 from app.config import settings
 
 app = FastAPI(
@@ -9,6 +10,8 @@ app = FastAPI(
     description="Purchase order intake, extraction, and compliance routing",
     version="0.1.0",
 )
+
+app.include_router(process_order_router)
 
 engine = create_engine(settings.database_url)
 
