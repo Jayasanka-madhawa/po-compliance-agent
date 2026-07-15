@@ -1,10 +1,10 @@
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.decision import DecisionType, JobStatus
 from app.models.purchase_order import LineItem, PurchaseOrder
 
 client = TestClient(app)
@@ -40,8 +40,8 @@ def test_process_order_returns_extraction(mock_process):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "completed"
-    assert body["decision"] == "PENDING_ROUTING"
+    assert body["status"] == JobStatus.COMPLETED.value
+    assert body["decision"] == DecisionType.PENDING_ROUTING.value
     assert body["extraction"]["po_number"] == "PO-4521-LK"
     assert body["job_id"] == "job-test-123"
 
