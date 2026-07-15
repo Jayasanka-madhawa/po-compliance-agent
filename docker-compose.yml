@@ -35,6 +35,18 @@ services:
       qdrant:
         condition: service_started
 
+  streamlit:
+    build: .
+    command: streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8502:8501"
+    environment:
+      - API_URL=http://api:8000
+    volumes:
+      - ./streamlit_app.py:/app/streamlit_app.py
+    depends_on:
+      - api
+
   n8n:
     image: n8nio/n8n:latest
     ports:
