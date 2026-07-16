@@ -9,3 +9,10 @@ gatherUsageStats = false
 
 [runner]
 fastReruns = true
+
+[theme]
+primaryColor = "#1e40af"
+backgroundColor = "#dde4ee"
+secondaryBackgroundColor = "#eef2f7"
+textColor = "#0f172a"
+font = "sans serif"

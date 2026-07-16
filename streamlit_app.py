@@ -6,6 +6,7 @@ Docker: docker compose up -d streamlit  → http://localhost:8502
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import httpx
 import pandas as pd
@@ -13,7 +14,243 @@ import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 DEFAULT_API_URL = os.getenv("API_URL", "http://localhost:8000")
+DEFAULT_REVIEWER = "pocompliance.demo@gmail.com"
 REQUEST_TIMEOUT = 120.0
+KNOWLEDGE_BASE_DIR = Path(__file__).resolve().parent / "knowledge_base"
+
+OFFICE_CSS = """
+<style>
+    .stApp {
+        background-color: #dde4ee;
+        font-size: 0.98rem;
+    }
+    .block-container {
+        padding-top: 1.25rem;
+        padding-bottom: 2rem;
+        max-width: 1120px;
+        font-size: 0.98rem;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #e8edf5;
+        border-right: 1px solid #c5d0de;
+        font-size: 0.95rem;
+    }
+    [data-testid="stSidebar"] .stMarkdown h1 {
+        font-size: 1.08rem;
+        font-weight: 600;
+        color: #0f172a;
+        letter-spacing: -0.01em;
+    }
+    [data-testid="stSidebar"] .stCaption {
+        color: #475569;
+        font-size: 0.86rem;
+    }
+    [data-testid="stSidebar"] label {
+        font-size: 0.95rem !important;
+    }
+    .sidebar-brand {
+        margin: 0 0 0.15rem 0;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+    }
+    [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+        margin-bottom: 0.5rem;
+    }
+    [data-testid="stCaptionContainer"] {
+        font-size: 0.86rem;
+    }
+    [data-testid="stAlert"] {
+        font-size: 0.95rem;
+        padding: 0.5rem 0.75rem;
+    }
+    [data-testid="stAlert"] p {
+        font-size: 0.95rem;
+        margin: 0;
+    }
+    [data-testid="stExpander"] summary {
+        font-size: 0.95rem;
+    }
+    [data-testid="stDataFrame"] {
+        font-size: 0.9rem;
+    }
+    [data-testid="stTable"] {
+        font-size: 0.86rem;
+    }
+    [data-testid="stTable"] table {
+        font-size: 0.86rem;
+    }
+    .ag-theme-streamlit {
+        font-size: 0.9rem !important;
+    }
+    div[data-testid="stMetric"] label {
+        font-size: 0.83rem;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        font-size: 1.08rem;
+    }
+    .page-header {
+        margin: 0 0 1.35rem 0;
+    }
+    .page-header h1 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #0f172a;
+        letter-spacing: -0.025em;
+        line-height: 1.15;
+    }
+    .page-header p {
+        margin: 0.35rem 0 0.85rem 0;
+        color: #64748b;
+        font-size: 0.92rem;
+        line-height: 1.45;
+        max-width: 42rem;
+    }
+    .page-header-rule {
+        height: 2px;
+        width: 3.5rem;
+        background: #1e40af;
+        border-radius: 1px;
+    }
+    .block-container h3 {
+        font-size: 1.02rem;
+        font-weight: 600;
+        margin-top: 0.75rem;
+    }
+    .block-container p, .block-container li {
+        font-size: 0.95rem;
+        line-height: 1.45;
+    }
+    [data-testid="stForm"] {
+        padding: 0.25rem 0;
+    }
+    .stButton > button {
+        font-size: 0.95rem;
+    }
+    .stButton > button[kind="primary"] {
+        background-color: #1e40af;
+        border-color: #1e40af;
+    }
+    .stButton > button[kind="primary"]:hover {
+        background-color: #1e3a8a;
+        border-color: #1e3a8a;
+    }
+    .policy-heading {
+        font-size: 0.96rem;
+        font-weight: 600;
+        color: #0f172a;
+        border-bottom: 1px solid #c5d0de;
+        padding-bottom: 0.25rem;
+        margin: 1.1rem 0 0.35rem 0;
+    }
+    .policy-heading:first-of-type {
+        margin-top: 0;
+    }
+    .policy-caption {
+        font-size: 0.8rem;
+        color: #64748b;
+        margin: 0 0 0.45rem 0;
+        line-height: 1.35;
+    }
+    .policy-body {
+        font-size: 0.86rem;
+        line-height: 1.4;
+        color: #334155;
+    }
+    .policy-body ul {
+        margin: 0.2rem 0 0.55rem 0;
+        padding-left: 1.1rem;
+    }
+    .policy-body li {
+        font-size: 0.86rem;
+        margin-bottom: 0.12rem;
+    }
+    .policy-body p {
+        font-size: 0.86rem;
+        margin: 0.2rem 0 0.35rem 0;
+    }
+    .policy-subhead {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0.45rem 0 0.15rem 0;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"] {
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid #b8c5d4 !important;
+        border-radius: 8px;
+        padding: 1rem 1.25rem 1.1rem;
+        margin: 0.75rem 0 1rem 0;
+    }
+    .job-detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.85rem;
+    }
+    .job-badge {
+        display: inline-block;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.28rem 0.65rem;
+        border-radius: 999px;
+        letter-spacing: 0.01em;
+    }
+    .job-badge-auto_accept,
+    .job-badge-manually_approved {
+        color: #166534;
+        background: #dcfce7;
+        border: 1px solid #bbf7d0;
+    }
+    .job-badge-human_review {
+        color: #92400e;
+        background: #fef3c7;
+        border: 1px solid #fde68a;
+    }
+    .job-badge-rejected,
+    .job-badge-processing_failed {
+        color: #991b1b;
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+    }
+    .job-badge-unknown {
+        color: #334155;
+        background: #e2e8f0;
+        border: 1px solid #cbd5e1;
+    }
+    .job-detail-id {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+    .job-detail-label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0.85rem 0 0.35rem 0;
+    }
+</style>
+"""
+
+
+def inject_office_theme() -> None:
+    st.markdown(OFFICE_CSS, unsafe_allow_html=True)
+
+
+def render_page_header(title: str, subtitle: str) -> None:
+    st.markdown(
+        f'<div class="page-header">'
+        f"<h1>{title}</h1>"
+        f"<p>{subtitle}</p>"
+        f'<div class="page-header-rule"></div>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 SAMPLE_FILES = [
     ("po_clean_ceylon_industrial.pdf", "Auto Accept"),
@@ -23,7 +260,7 @@ SAMPLE_FILES = [
 
 
 def api_url() -> str:
-    return st.session_state.get("api_url", DEFAULT_API_URL).rstrip("/")
+    return DEFAULT_API_URL.rstrip("/")
 
 
 @st.cache_resource
@@ -81,11 +318,6 @@ def api_patch_json(path: str, payload: dict) -> tuple[dict | None, str | None]:
         return None, str(exc)
 
 
-def refresh_health() -> None:
-    health, error = api_get("/health")
-    st.session_state["health_cache"] = {"health": health, "error": error}
-
-
 def invalidate_list_caches() -> None:
     st.session_state.pop("review_jobs", None)
     st.session_state.pop("history_jobs", None)
@@ -122,6 +354,124 @@ def load_history_jobs(limit: int, force: bool = False) -> tuple[list[dict], str 
     return jobs, error
 
 
+def _read_policy_file(filename: str) -> str:
+    path = KNOWLEDGE_BASE_DIR / filename
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    return ""
+
+
+def _policy_heading(title: str, caption: str | None = None) -> None:
+    cap = f'<div class="policy-caption">{caption}</div>' if caption else ""
+    st.markdown(
+        f'<div class="policy-heading">{title}</div>{cap}',
+        unsafe_allow_html=True,
+    )
+
+
+def _compact_policy_html(text: str) -> str:
+    parts: list[str] = ['<div class="policy-body">']
+    in_ul = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            if in_ul:
+                parts.append("</ul>")
+                in_ul = False
+            continue
+        if stripped.startswith("# ") and not stripped.startswith("## "):
+            continue
+        if stripped.startswith("## "):
+            if in_ul:
+                parts.append("</ul>")
+                in_ul = False
+            parts.append(f'<p class="policy-subhead">{stripped[3:]}</p>')
+        elif stripped.startswith("- "):
+            if not in_ul:
+                parts.append("<ul>")
+                in_ul = True
+            parts.append(f"<li>{stripped[2:]}</li>")
+        else:
+            if in_ul:
+                parts.append("</ul>")
+                in_ul = False
+            parts.append(f"<p>{stripped}</p>")
+    if in_ul:
+        parts.append("</ul>")
+    parts.append("</div>")
+    return "\n".join(parts)
+
+
+def _policy_list_html(items: list[str]) -> str:
+    rows = "".join(f"<li>{item}</li>" for item in items)
+    return f'<div class="policy-body"><ul>{rows}</ul></div>'
+
+
+def page_policies() -> None:
+    vendor_path = KNOWLEDGE_BASE_DIR / "approved_vendors.csv"
+    _policy_heading(
+        "Approved vendors",
+        "Only approved vendors are eligible for automatic acceptance.",
+    )
+    if vendor_path.exists():
+        vendors = pd.read_csv(vendor_path)
+        st.table(vendors)
+    else:
+        st.markdown(
+            _policy_list_html(
+                [
+                    "<strong>Ceylon Industrial Bearings (Pvt) Ltd</strong> (VND-001)",
+                    "<strong>Lakpura Logistics (Pvt) Ltd</strong> (VND-002)",
+                ]
+            ),
+            unsafe_allow_html=True,
+        )
+
+    payment_policy = _read_policy_file("payment_policy.md")
+    _policy_heading("Payment terms")
+    if payment_policy:
+        st.markdown(_compact_policy_html(payment_policy), unsafe_allow_html=True)
+    else:
+        st.markdown(
+            _policy_list_html(
+                [
+                    "Auto-approve: Net 15, Net 30, Due on Receipt (max <strong>30 days</strong>)",
+                    "Human review: Net 45, 60, 90 or any terms above 30 days",
+                ]
+            ),
+            unsafe_allow_html=True,
+        )
+
+    approval_policy = _read_policy_file("approval_policy.md")
+    _policy_heading("Spending limits")
+    if approval_policy:
+        st.markdown(_compact_policy_html(approval_policy), unsafe_allow_html=True)
+    else:
+        st.markdown(
+            _policy_list_html(
+                [
+                    "Auto-approve: up to <strong>LKR 1,000,000</strong>",
+                    "Manager review: LKR 1,000,001 – 5,000,000",
+                    "Director review: above LKR 5,000,000",
+                ]
+            ),
+            unsafe_allow_html=True,
+        )
+
+    _policy_heading("Routing rules")
+    st.markdown(
+        _policy_list_html(
+            [
+                "<strong>Auto Accept</strong> — all policy checks pass, extraction confidence ≥ 75%",
+                "<strong>Human Review</strong> — vendor, payment terms, spending limit, missing fields, or math mismatch",
+                "<strong>Manually Approved</strong> — reviewer approved a flagged PO in the review queue",
+                "<strong>Rejected</strong> — reviewer rejected a flagged PO",
+            ]
+        ),
+        unsafe_allow_html=True,
+    )
+
+
 def prefetch_data() -> None:
     """Load list data once so tab switches stay instant."""
     if "review_jobs" not in st.session_state:
@@ -142,18 +492,41 @@ def format_pct(value: float | None) -> str:
     return f"{value:.0%}"
 
 
-def show_decision(decision: str | None) -> None:
-    label = (decision or "UNKNOWN").replace("_", " ").title()
-    if decision == "AUTO_ACCEPT":
-        st.success(f"**{label}**")
-    elif decision == "MANUALLY_APPROVED":
-        st.success(f"**Manually Approved**")
-    elif decision == "HUMAN_REVIEW":
-        st.warning(f"**{label}**")
-    elif decision in {"REJECTED", "PROCESSING_FAILED"}:
-        st.error(f"**{label}**")
-    else:
-        st.info(f"**{label}**")
+def _decision_label(decision: str | None) -> str:
+    if decision == "MANUALLY_APPROVED":
+        return "Manually Approved"
+    return (decision or "UNKNOWN").replace("_", " ").title()
+
+
+def _decision_badge_class(decision: str | None) -> str:
+    key = (decision or "unknown").lower()
+    if key not in {
+        "auto_accept",
+        "manually_approved",
+        "human_review",
+        "rejected",
+        "processing_failed",
+    }:
+        return "job-badge-unknown"
+    return f"job-badge-{key}"
+
+
+def _detail_label(title: str) -> None:
+    st.markdown(f'<p class="job-detail-label">{title}</p>', unsafe_allow_html=True)
+
+
+def _render_job_detail_header(job: dict) -> None:
+    decision = job.get("decision")
+    job_id = (job.get("job_id") or "")[:8] or "—"
+    badge_class = _decision_badge_class(decision)
+    label = _decision_label(decision)
+    st.markdown(
+        f'<div class="job-detail-header">'
+        f'<span class="job-badge {badge_class}">{label}</span>'
+        f'<span class="job-detail-id">Job #{job_id}</span>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 
 def jobs_table_df(jobs: list[dict]) -> pd.DataFrame:
@@ -250,58 +623,58 @@ def render_selectable_jobs_table(
 
 
 def show_job_details(job: dict) -> None:
-    show_decision(job.get("decision"))
+    with st.container(border=True):
+        _render_job_detail_header(job)
 
-    if job.get("error"):
-        st.error(job["error"])
-    elif job.get("explanation"):
-        st.info(job["explanation"])
+        if job.get("error"):
+            st.error(job["error"])
+        elif job.get("explanation"):
+            st.caption(job["explanation"])
 
-    extraction = job.get("extraction") or {}
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Vendor", extraction.get("vendor_name") or "—")
-    c2.metric("PO number", extraction.get("po_number") or "—")
-    c3.metric("Total", format_money(extraction.get("total_amount")))
-    c4.metric("Confidence", format_pct(job.get("confidence")))
+        extraction = job.get("extraction") or {}
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Vendor", extraction.get("vendor_name") or "—")
+        c2.metric("PO number", extraction.get("po_number") or "—")
+        c3.metric("Total", format_money(extraction.get("total_amount")))
+        c4.metric("Confidence", format_pct(job.get("confidence")))
 
-    if extraction.get("fields_missing"):
-        st.warning("Missing: " + ", ".join(extraction["fields_missing"]))
-    if extraction.get("ambiguities"):
-        st.warning("Ambiguities: " + ", ".join(extraction["ambiguities"]))
+        if extraction.get("fields_missing"):
+            st.warning("Missing: " + ", ".join(extraction["fields_missing"]))
+        if extraction.get("ambiguities"):
+            st.warning("Ambiguities: " + ", ".join(extraction["ambiguities"]))
 
-    reasons = job.get("reasons") or []
-    if reasons:
-        st.markdown("**Why flagged**")
-        for reason in reasons:
-            st.markdown(f"- {reason}")
+        reasons = job.get("reasons") or []
+        if reasons:
+            _detail_label("Why flagged")
+            for reason in reasons:
+                st.markdown(f"- {reason}")
 
-    rag = job.get("rag_validation") or {}
-    if rag:
-        checks = [
-            ("Vendor", (rag.get("vendor_check") or {}).get("status")),
-            ("Payment terms", (rag.get("payment_terms_check") or {}).get("status")),
-            ("Spending", (rag.get("spending_check") or {}).get("status")),
-        ]
-        check_cols = st.columns(len(checks))
-        for col, (name, status) in zip(check_cols, checks):
-            col.metric(name, (status or "—").replace("_", " ").title())
+        rag = job.get("rag_validation") or {}
+        if rag:
+            _detail_label("Policy checks")
+            checks = [
+                ("Vendor", (rag.get("vendor_check") or {}).get("status")),
+                ("Payment terms", (rag.get("payment_terms_check") or {}).get("status")),
+                ("Spending", (rag.get("spending_check") or {}).get("status")),
+            ]
+            check_cols = st.columns(len(checks))
+            for col, (name, status) in zip(check_cols, checks):
+                col.metric(name, (status or "—").replace("_", " ").title())
 
-        math_ok = (rag.get("math_validation") or {}).get("total_reconciled")
-        st.write(f"Math reconciled: **{'Yes' if math_ok else 'No'}**")
+            math_ok = (rag.get("math_validation") or {}).get("total_reconciled")
+            st.caption(f"Math reconciled: **{'Yes' if math_ok else 'No'}**")
 
-    line_items = extraction.get("line_items") or []
-    if line_items:
-        st.markdown("**Line items**")
-        st.dataframe(pd.DataFrame(line_items), use_container_width=True, hide_index=True)
+        line_items = extraction.get("line_items") or []
+        if line_items:
+            _detail_label("Line items")
+            st.dataframe(pd.DataFrame(line_items), use_container_width=True, hide_index=True)
 
-    with st.expander("Full API response"):
-        st.json(job)
+        with st.expander("Full API response"):
+            st.json(job)
 
 
 @st.fragment
 def page_process_order() -> None:
-    st.caption("Upload a PO file for extraction, policy checks, and routing.")
-
     with st.form("process_form", clear_on_submit=False):
         uploaded = st.file_uploader(
             "Attachment (PDF, CSV, or image)",
@@ -345,18 +718,15 @@ def page_process_order() -> None:
 
     result = st.session_state.get("last_result")
     if result:
-        st.divider()
         show_job_details(result)
 
 
 def page_review_queue() -> None:
-    st.caption("Approve or reject orders flagged for human review.")
-
     top_left, top_right = st.columns([3, 1])
     with top_left:
         reviewer = st.text_input(
             "Reviewer email",
-            value=st.session_state.get("reviewer", "procurement.manager@company.com"),
+            value=st.session_state.get("reviewer", DEFAULT_REVIEWER),
             key="reviewer_email",
         )
         st.session_state["reviewer"] = reviewer
@@ -386,7 +756,6 @@ def page_review_queue() -> None:
     if job is None:
         return
 
-    st.divider()
     show_job_details(job)
 
     with st.form(f"review_{job.get('job_id')}"):
@@ -417,8 +786,6 @@ def page_review_queue() -> None:
 
 
 def page_job_history() -> None:
-    st.caption("Recent processed purchase orders.")
-
     top_left, top_right = st.columns([3, 1])
     with top_left:
         limit = st.selectbox("Show latest", [10, 20, 50], index=1, key="history_limit")
@@ -447,21 +814,21 @@ def page_job_history() -> None:
     if job is None:
         return
 
-    st.divider()
     show_job_details(job)
 
 
 PAGES = {
-    "Process Order": page_process_order,
     "Review Queue": page_review_queue,
     "Job History": page_job_history,
+    "Process Order": page_process_order,
+    "Policies": page_policies,
 }
 
 
 def render_sidebar() -> None:
     with st.sidebar:
-        st.title("PO Compliance")
-        st.caption("Purchase order validation")
+        st.markdown('<p class="sidebar-brand">Procurement Compliance</p>', unsafe_allow_html=True)
+        st.caption("Purchase order intake & validation")
         st.divider()
 
         st.radio(
@@ -471,61 +838,37 @@ def render_sidebar() -> None:
             key="nav_page",
         )
 
-        st.divider()
-        st.text_input("API URL", key="api_url")
 
-        if st.button("Check API", use_container_width=True):
-            refresh_health()
-
-        cache = st.session_state.get("health_cache")
-        if cache:
-            health, error = cache["health"], cache["error"]
-            if error:
-                st.error("API offline")
-                st.caption(error)
-            elif isinstance(health, dict):
-                status = health.get("status", "unknown")
-                if status == "ok":
-                    st.success("API connected")
-                else:
-                    st.warning(f"API status: {status}")
-                st.caption(
-                    f"Postgres: {health.get('postgres', '—')} · "
-                    f"Qdrant: {health.get('qdrant', '—')}"
-                )
-        else:
-            st.caption("Click **Check API** to test connection.")
+PAGE_SUBTITLES = {
+    "Process Order": "Upload vendor purchase orders for extraction and policy checks.",
+    "Review Queue": "Review flagged orders and record approval decisions.",
+    "Job History": "Audit trail of processed purchase orders.",
+    "Policies": "Corporate procurement policies used for automated validation.",
+}
 
 
 def main() -> None:
     st.set_page_config(
-        page_title="PO Compliance Agent",
+        page_title="Procurement Compliance",
         page_icon="📋",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    if "api_url" not in st.session_state:
-        st.session_state["api_url"] = DEFAULT_API_URL
-    if "reviewer" not in st.session_state:
-        st.session_state["reviewer"] = "procurement.manager@company.com"
-    if "nav_page" not in st.session_state:
-        st.session_state["nav_page"] = "Process Order"
-    if "health_cache" not in st.session_state:
-        refresh_health()
+    inject_office_theme()
 
-    current_url = api_url()
-    if st.session_state.get("_last_api_url") != current_url:
-        st.session_state["_last_api_url"] = current_url
-        invalidate_list_caches()
-        st.session_state.pop("health_cache", None)
-        refresh_health()
+    if "reviewer" not in st.session_state or st.session_state.get("reviewer") == (
+        "procurement.manager@company.com"
+    ):
+        st.session_state["reviewer"] = DEFAULT_REVIEWER
+    if "nav_page" not in st.session_state:
+        st.session_state["nav_page"] = "Review Queue"
 
     prefetch_data()
     render_sidebar()
 
     page = st.session_state["nav_page"]
-    st.title(page)
+    render_page_header(page, PAGE_SUBTITLES.get(page, ""))
     PAGES[page]()
 
 

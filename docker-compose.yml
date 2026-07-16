@@ -50,6 +50,7 @@ services:
     volumes:
       - ./streamlit_app.py:/app/streamlit_app.py
       - ./.streamlit/config.toml:/app/.streamlit/config.toml
+      - ./knowledge_base:/app/knowledge_base:ro
     depends_on:
       - api
     restart: unless-stopped

@@ -7,7 +7,7 @@
       "typeVersion": 1,
       "position": [
         -240,
-        -32
+        1168
       ],
       "id": "3fbecc41-0363-4d0c-88fe-3f2f988b620e",
       "name": "When clicking ‘Execute workflow’"
@@ -20,8 +20,8 @@
       "type": "n8n-nodes-base.readWriteFile",
       "typeVersion": 1.1,
       "position": [
-        -32,
-        -32
+        16,
+        1168
       ],
       "id": "673ac767-dd8b-474f-9760-194a98fa4e02",
       "name": "Read/Write Files from Disk"
@@ -37,15 +37,15 @@
             {
               "parameterType": "formBinaryData",
               "name": "file",
-              "inputDataFieldName": "data"
+              "inputDataFieldName": "attachment_0"
             },
             {
               "name": "sender",
-              "value": "vendor@test.com"
+              "value": "=={{ $json.From }}"
             },
             {
               "name": "subject",
-              "value": "Purchase Order Submission"
+              "value": "=={{ $json.Subject }}"
             }
           ]
         },
@@ -54,8 +54,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        176,
-        -32
+        80,
+        -128
       ],
       "id": "43823a35-aa43-4634-a716-8ed71637569a",
       "name": "HTTP Request"
@@ -139,8 +139,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        384,
-        -48
+        288,
+        -144
       ],
       "id": "2ad08628-b8fd-42c8-b429-bfc461c27fc0",
       "name": "Switch"
@@ -162,8 +162,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        592,
-        -32
+        496,
+        -128
       ],
       "id": "759ba9e7-8653-40da-87d8-c715578eea1d",
       "name": "HUMAN_REVIEW"
@@ -185,8 +185,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        592,
-        -224
+        496,
+        -320
       ],
       "id": "94dbb1b1-a93e-4524-bd76-d894ad0b3f57",
       "name": "AUTO-ACCEPTED"
@@ -208,11 +208,42 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        592,
-        160
+        496,
+        64
       ],
       "id": "fc62238e-50ac-4e97-bfcc-af2f2b166969",
       "name": "PROCESSING_FAILED"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -304,
+        -128
+      ],
+      "id": "f3887e6d-067d-460f-af5f-a92b052b7b75",
+      "name": "Gmail Trigger",
+      "alwaysOutputData": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dSnyTUAjqmVYfBSh",
+          "name": "Gmail account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -230,13 +261,7 @@
     },
     "Read/Write Files from Disk": {
       "main": [
-        [
-          {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "HTTP Request": {
@@ -274,6 +299,17 @@
           }
         ]
       ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -282,8 +318,9 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "f8fd48bf-26a1-40f3-97f2-ec3a0b20bde7",
+  "versionId": "69d44328-abba-4c9c-b717-cf408d0b3145",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "ffd6c07e5b9c71a3f52c6eb55ff3742e39afd87845e50dfc176bd775c7a54b84"
   },
   "nodeGroups": [],
