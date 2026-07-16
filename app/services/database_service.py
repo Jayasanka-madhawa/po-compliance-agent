@@ -104,7 +104,7 @@ def apply_review(
     record.reviewed_at = datetime.now(UTC)
 
     if action == ReviewAction.APPROVE:
-        record.decision = DecisionType.AUTO_ACCEPT.value
+        record.decision = DecisionType.MANUALLY_APPROVED.value
         record.message = f"Manually approved by {reviewer}"
     else:
         record.decision = DecisionType.REJECTED.value

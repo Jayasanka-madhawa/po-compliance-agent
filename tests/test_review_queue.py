@@ -41,6 +41,14 @@ def test_list_review_queue_only_human_review(db_session):
     )
     database_service.save_job(
         db_session,
+        ProcessOrderResponse(
+            job_id="job-manual",
+            status=JobStatus.COMPLETED,
+            decision=DecisionType.MANUALLY_APPROVED,
+        ),
+    )
+    database_service.save_job(
+        db_session,
         _human_review_job("job-review-1", "Serendib Heavy Parts Ltd"),
     )
 
@@ -78,7 +86,7 @@ def test_apply_review_approve(db_session):
         note="Approved after vendor verification call",
     )
 
-    assert record.decision == DecisionType.AUTO_ACCEPT.value
+    assert record.decision == DecisionType.MANUALLY_APPROVED.value
     assert record.reviewer == "procurement.manager@company.com"
     assert record.review_note == "Approved after vendor verification call"
     assert record.reviewed_at is not None
@@ -166,7 +174,7 @@ def test_review_job_approve_api(client, db_session):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["decision"] == DecisionType.AUTO_ACCEPT.value
+    assert body["decision"] == DecisionType.MANUALLY_APPROVED.value
     assert body["reviewer"] == "procurement.manager@company.com"
     assert body["review_note"] == "Approved exception for one-time purchase"
     assert body["reviewed_at"] is not None

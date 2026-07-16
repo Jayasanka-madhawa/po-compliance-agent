@@ -37,15 +37,22 @@ services:
 
   streamlit:
     build: .
-    command: streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+    command: >
+      streamlit run streamlit_app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.fileWatcherType=none
+      --browser.gatherUsageStats=false
     ports:
       - "8502:8501"
     environment:
       - API_URL=http://api:8000
     volumes:
       - ./streamlit_app.py:/app/streamlit_app.py
+      - ./.streamlit/config.toml:/app/.streamlit/config.toml
     depends_on:
       - api
+    restart: unless-stopped
 
   n8n:
     image: n8nio/n8n:latest
