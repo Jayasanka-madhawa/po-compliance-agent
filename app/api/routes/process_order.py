@@ -54,14 +54,14 @@ async def process_order(
 
         result = process_order_file(tmp_path)
         response = _to_response(result)
-        database_service.save_job(
+        record = database_service.save_job(
             db,
             response,
             filename=file.filename,
             sender=sender,
             subject=subject,
         )
-        return response
+        return database_service.job_to_response(record)
 
     except ValueError as exc:
         response = ProcessOrderResponse(
@@ -71,14 +71,14 @@ async def process_order(
             error=str(exc),
             message="Could not process the attachment.",
         )
-        database_service.save_job(
+        record = database_service.save_job(
             db,
             response,
             filename=file.filename,
             sender=sender,
             subject=subject,
         )
-        return response
+        return database_service.job_to_response(record)
 
     except Exception as exc:
         response = ProcessOrderResponse(
@@ -88,14 +88,14 @@ async def process_order(
             error=str(exc),
             message="Unexpected error during processing.",
         )
-        database_service.save_job(
+        record = database_service.save_job(
             db,
             response,
             filename=file.filename,
             sender=sender,
             subject=subject,
         )
-        return response
+        return database_service.job_to_response(record)
 
     finally:
         if tmp_path is not None and tmp_path.exists():

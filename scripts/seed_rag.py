@@ -74,8 +74,8 @@ def chunk_markdown(path: Path) -> list[dict]:
 def load_chunks() -> list[dict]:
     chunks: list[dict] = []
     chunks.extend(chunk_csv(KB_DIR / "approved_vendors.csv"))
-    chunks.extend(chunk_markdown(KB_DIR / "payment_policy.md"))
-    chunks.extend(chunk_markdown(KB_DIR / "approval_policy.md"))
+    for path in sorted(KB_DIR.glob("*.md")):
+        chunks.extend(chunk_markdown(path))
     return chunks
 
 
@@ -87,6 +87,15 @@ def embed_texts(client: OpenAI, texts: list[str]) -> list[list[float]]:
         input=texts,
     )
     return [item.embedding for item in response.data]
+
+
+def ensure_collection(qdrant: QdrantClient, collection_name: str) -> None:
+    if qdrant.collection_exists(collection_name):
+        qdrant.delete_collection(collection_name)
+    qdrant.create_collection(
+        collection_name=collection_name,
+        vectors_config=VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE),
+    )
 
 
 def main() -> None:
@@ -102,10 +111,7 @@ def main() -> None:
 
     vectors = embed_texts(openai, [chunk["text"] for chunk in chunks])
 
-    qdrant.recreate_collection(
-        collection_name=settings.qdrant_collection,
-        vectors_config=VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE),
-    )
+    ensure_collection(qdrant, settings.qdrant_collection)
 
     points = [
         PointStruct(

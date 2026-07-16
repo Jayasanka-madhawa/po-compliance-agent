@@ -48,6 +48,7 @@ def test_save_and_get_job(db_session):
     assert restored.extraction.po_number == "PO-4521-LK"
     assert restored.decision == DecisionType.AUTO_ACCEPT
     assert restored.confidence == 0.95
+    assert restored.created_at is not None
 
 
 def test_list_jobs(db_session):

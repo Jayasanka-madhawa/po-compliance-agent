@@ -136,6 +136,7 @@ def job_to_response(record: JobRecord) -> ProcessOrderResponse:
         reviewer=record.reviewer,
         review_note=record.review_note,
         reviewed_at=record.reviewed_at,
+        created_at=record.created_at,
         error=record.error,
         message=record.message,
     )

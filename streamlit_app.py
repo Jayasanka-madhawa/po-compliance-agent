@@ -6,7 +6,9 @@ Docker: docker compose up -d streamlit  → http://localhost:8502
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import httpx
 import pandas as pd
@@ -16,7 +18,17 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 DEFAULT_API_URL = os.getenv("API_URL", "http://localhost:8000")
 DEFAULT_REVIEWER = "pocompliance.demo@gmail.com"
 REQUEST_TIMEOUT = 120.0
+DISPLAY_TZ = ZoneInfo("Asia/Colombo")
 KNOWLEDGE_BASE_DIR = Path(__file__).resolve().parent / "knowledge_base"
+
+POLICY_SECTIONS = [
+    ("payment_policy.md", "Payment terms"),
+    ("approval_policy.md", "Spending limits"),
+    ("required_fields_policy.md", "Required fields"),
+    ("currency_policy.md", "Currency & FX"),
+    ("procurement_categories.md", "Procurement categories"),
+    ("vendor_onboarding_policy.md", "Vendor onboarding"),
+]
 
 OFFICE_CSS = """
 <style>
@@ -411,7 +423,7 @@ def page_policies() -> None:
     vendor_path = KNOWLEDGE_BASE_DIR / "approved_vendors.csv"
     _policy_heading(
         "Approved vendors",
-        "Only approved vendors are eligible for automatic acceptance.",
+        "Only vendors with approved status are eligible for automatic acceptance.",
     )
     if vendor_path.exists():
         vendors = pd.read_csv(vendor_path)
@@ -427,36 +439,12 @@ def page_policies() -> None:
             unsafe_allow_html=True,
         )
 
-    payment_policy = _read_policy_file("payment_policy.md")
-    _policy_heading("Payment terms")
-    if payment_policy:
-        st.markdown(_compact_policy_html(payment_policy), unsafe_allow_html=True)
-    else:
-        st.markdown(
-            _policy_list_html(
-                [
-                    "Auto-approve: Net 15, Net 30, Due on Receipt (max <strong>30 days</strong>)",
-                    "Human review: Net 45, 60, 90 or any terms above 30 days",
-                ]
-            ),
-            unsafe_allow_html=True,
-        )
-
-    approval_policy = _read_policy_file("approval_policy.md")
-    _policy_heading("Spending limits")
-    if approval_policy:
-        st.markdown(_compact_policy_html(approval_policy), unsafe_allow_html=True)
-    else:
-        st.markdown(
-            _policy_list_html(
-                [
-                    "Auto-approve: up to <strong>LKR 1,000,000</strong>",
-                    "Manager review: LKR 1,000,001 – 5,000,000",
-                    "Director review: above LKR 5,000,000",
-                ]
-            ),
-            unsafe_allow_html=True,
-        )
+    for filename, title in POLICY_SECTIONS:
+        policy_text = _read_policy_file(filename)
+        if not policy_text:
+            continue
+        _policy_heading(title)
+        st.markdown(_compact_policy_html(policy_text), unsafe_allow_html=True)
 
     _policy_heading("Routing rules")
     st.markdown(
@@ -490,6 +478,18 @@ def format_pct(value: float | None) -> str:
     if value is None:
         return "—"
     return f"{value:.0%}"
+
+
+def format_processed_at(value: str | datetime | None) -> str:
+    if not value:
+        return "—"
+    if isinstance(value, str):
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    else:
+        dt = value
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(DISPLAY_TZ).strftime("%d %b %Y, %H:%M")
 
 
 def _decision_label(decision: str | None) -> str:
@@ -538,6 +538,7 @@ def jobs_table_df(jobs: list[dict]) -> pd.DataFrame:
             {
                 "_job_id": job_id,
                 "Job ID": job_id[:8] if job_id else "—",
+                "Processed": format_processed_at(job.get("created_at")),
                 "Decision": job.get("decision") or "—",
                 "Vendor": extraction.get("vendor_name") or "—",
                 "PO #": extraction.get("po_number") or "—",
@@ -582,6 +583,7 @@ def render_selectable_jobs_table(
     df = jobs_table_df(jobs)
     builder = GridOptionsBuilder.from_dataframe(df)
     builder.configure_column("_job_id", hide=True)
+    builder.configure_column("Processed", width=150)
     builder.configure_selection("single", use_checkbox=False)
     builder.configure_grid_options(
         suppressRowClickSelection=False,

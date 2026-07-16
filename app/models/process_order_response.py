@@ -18,5 +18,6 @@ class ProcessOrderResponse(BaseModel):
     reviewer: str | None = None
     review_note: str | None = None
     reviewed_at: datetime | None = None
+    created_at: datetime | None = None
     error: str | None = None
     message: str | None = None
