@@ -15,8 +15,6 @@ Under the hood: OpenAI for extraction, Qdrant for policy lookup (RAG), PostgreSQ
 
 Built for the Flat Rock Technology Agentic AI Engineer test task.
 
-**Demo video:** [Loom recording](#) *(add link after recording)*
-
 **Repository:** https://github.com/Jayasanka-madhawa/po-compliance-agent
 
 ---
@@ -263,6 +261,3 @@ API_URL=http://localhost:8000 streamlit run streamlit_app.py
 
 ---
 
-## License
-
-MIT (or as required by your submission).
